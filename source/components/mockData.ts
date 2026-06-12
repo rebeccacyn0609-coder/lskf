@@ -154,3 +154,206 @@ export function formatBalance(value: number | null, unlimited: boolean): string 
   if (value === null) return '—';
   return `¥${formatCny(value)}`;
 }
+
+/** 密钥管理页金额保留 3 位小数 */
+export function formatCny3(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—';
+  return value.toLocaleString('zh-CN', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+}
+
+export type QuotaMode = 'limited' | 'unlimited';
+
+/** 开发平台侧密钥启用/禁用（与运营管理端密钥状态独立） */
+export type PlatformKeyStatus = 'enabled' | 'disabled';
+
+export interface ApiKeyRow {
+  id: string;
+  name: string;
+  /** 运营管理端密钥状态，列表仅展示 active */
+  opsStatus: 'active';
+  platformStatus: PlatformKeyStatus;
+  apiKey: string;
+  invokeLink: string;
+  quotaMode: QuotaMode;
+  totalQuota: number;
+  remainingQuota: number;
+  consumptionTotal: number;
+  allowedModels: string[];
+  ipLimit: string;
+  lastUsedAt: string;
+}
+
+export interface KeyUsageLogRow {
+  id: string;
+  keyId: string;
+  type: UsageLogType;
+  time: string;
+  keyName: string;
+  model: string;
+  durationMs: number;
+  tokens: number;
+  costCny: number;
+  remark: string;
+}
+
+export const mockApiKeys: ApiKeyRow[] = [
+  {
+    id: 'dk1',
+    name: '生产环境密钥',
+    opsStatus: 'active',
+    platformStatus: 'enabled',
+    apiKey: 'sk-ls-a1b2c3d4e5f6g7h8',
+    invokeLink: 'https://api.lingshu.dev/v1/chat/completions?key=sk-ls-a1b2c3d4e5f6g7h8',
+    quotaMode: 'limited',
+    totalQuota: 5000,
+    remainingQuota: 3245.5,
+    consumptionTotal: 1754.5,
+    allowedModels: ['gpt-4o', 'gpt-4o-mini'],
+    ipLimit: '192.168.1.0/24',
+    lastUsedAt: recentTime(0, 14, 32, 18),
+  },
+  {
+    id: 'dk2',
+    name: '测试密钥',
+    opsStatus: 'active',
+    platformStatus: 'enabled',
+    apiKey: 'sk-ls-test9876543210',
+    invokeLink: 'https://api.lingshu.dev/v1/chat/completions?key=sk-ls-test9876543210',
+    quotaMode: 'limited',
+    totalQuota: 500,
+    remainingQuota: 128.375,
+    consumptionTotal: 371.625,
+    allowedModels: ['gpt-4o-mini'],
+    ipLimit: '',
+    lastUsedAt: recentTime(0, 13, 58, 2),
+  },
+  {
+    id: 'dk3',
+    name: '内部调用密钥',
+    opsStatus: 'active',
+    platformStatus: 'disabled',
+    apiKey: 'sk-ls-local0011223344',
+    invokeLink: 'https://api.lingshu.dev/v1/chat/completions?key=sk-ls-local0011223344',
+    quotaMode: 'limited',
+    totalQuota: 2000,
+    remainingQuota: 856.12,
+    consumptionTotal: 1143.88,
+    allowedModels: ['claude-3-5-sonnet', 'qwen-max'],
+    ipLimit: '10.0.0.0/8',
+    lastUsedAt: recentTime(2, 9, 12, 44),
+  },
+  {
+    id: 'dk4',
+    name: '客服密钥',
+    opsStatus: 'active',
+    platformStatus: 'enabled',
+    apiKey: 'sk-ls-cs888888888888',
+    invokeLink: 'https://api.lingshu.dev/v1/chat/completions?key=sk-ls-cs888888888888',
+    quotaMode: 'unlimited',
+    totalQuota: 0,
+    remainingQuota: 0,
+    consumptionTotal: 1256.789,
+    allowedModels: ['gpt-4o-mini', 'qwen-max'],
+    ipLimit: '',
+    lastUsedAt: recentTime(1, 16, 45, 33),
+  },
+];
+
+export const mockKeyUsageLogs: KeyUsageLogRow[] = [
+  {
+    id: 'kl1',
+    keyId: 'dk1',
+    type: '消耗',
+    time: recentTime(0, 14, 32, 18),
+    keyName: '生产环境密钥',
+    model: 'gpt-4o-mini',
+    durationMs: 1240,
+    tokens: 1856,
+    costCny: 0.372,
+    remark: '对话补全',
+  },
+  {
+    id: 'kl2',
+    keyId: 'dk1',
+    type: '消耗',
+    time: recentTime(0, 13, 58, 2),
+    keyName: '生产环境密钥',
+    model: 'gpt-4o',
+    durationMs: 3420,
+    tokens: 4208,
+    costCny: 2.521,
+    remark: '代码生成',
+  },
+  {
+    id: 'kl3',
+    keyId: 'dk1',
+    type: '扣款',
+    time: recentTime(1, 18, 20, 11),
+    keyName: '生产环境密钥',
+    model: 'gpt-4o',
+    durationMs: 890,
+    tokens: 0,
+    costCny: 0.125,
+    remark: '调用失败扣款',
+  },
+  {
+    id: 'kl4',
+    keyId: 'dk2',
+    type: '消耗',
+    time: recentTime(0, 11, 5, 44),
+    keyName: '测试密钥',
+    model: 'gpt-4o-mini',
+    durationMs: 680,
+    tokens: 512,
+    costCny: 0.103,
+    remark: '摘要提取',
+  },
+  {
+    id: 'kl5',
+    keyId: 'dk2',
+    type: '消耗',
+    time: recentTime(2, 9, 12, 44),
+    keyName: '测试密钥',
+    model: 'gpt-4o-mini',
+    durationMs: 520,
+    tokens: 320,
+    costCny: 0.064,
+    remark: '单元测试调用',
+  },
+  {
+    id: 'kl6',
+    keyId: 'dk3',
+    type: '消耗',
+    time: recentTime(2, 9, 12, 44),
+    keyName: '内部调用密钥',
+    model: 'claude-3-5-sonnet',
+    durationMs: 2100,
+    tokens: 3102,
+    costCny: 1.862,
+    remark: '内部批处理',
+  },
+  {
+    id: 'kl7',
+    keyId: 'dk4',
+    type: '消耗',
+    time: recentTime(1, 16, 45, 33),
+    keyName: '客服密钥',
+    model: 'qwen-max',
+    durationMs: 1560,
+    tokens: 2048,
+    costCny: 0.456,
+    remark: '客服对话',
+  },
+  {
+    id: 'kl8',
+    keyId: 'dk4',
+    type: '消耗',
+    time: recentTime(3, 8, 30, 0),
+    keyName: '客服密钥',
+    model: 'gpt-4o-mini',
+    durationMs: 980,
+    tokens: 768,
+    costCny: 0.154,
+    remark: '工单摘要',
+  },
+];

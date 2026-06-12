@@ -1,8 +1,7 @@
 import React from 'react';
 import { Progress, Tag, Tooltip, Typography } from 'antd';
-import { formatCny2 } from './formatCny';
 
-export type QuotaMode = 'limited' | 'unlimited';
+import { formatCny3, type QuotaMode } from './mockData';
 
 export function QuotaLimitTag({ mode }: { mode: QuotaMode }) {
   return mode === 'limited' ? <Tag>有限</Tag> : <Tag color="processing">无限</Tag>;
@@ -15,15 +14,20 @@ type QuotaAmountCellProps = {
   consumptionTotal?: number;
 };
 
-/** 有限：条形图 + 悬停额度明细；无限：消费总额 */
-export function QuotaAmountCell({ mode, totalQuota = 0, remainingQuota = 0, consumptionTotal = 0 }: QuotaAmountCellProps) {
+/** 有限：剩余额度条形图 + 悬停明细；无限：消费总额 */
+export function QuotaAmountCell({
+  mode,
+  totalQuota = 0,
+  remainingQuota = 0,
+  consumptionTotal = 0,
+}: QuotaAmountCellProps) {
   if (mode === 'unlimited') {
     return (
-      <div>
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+      <div className="quota-amount-cell">
+        <Typography.Text type="secondary" className="quota-amount-label">
           消费总额
         </Typography.Text>
-        <div style={{ fontFamily: 'monospace', fontSize: 12, marginTop: 4 }}>{formatCny2(consumptionTotal)}</div>
+        <div className="quota-amount-value">¥{formatCny3(consumptionTotal)}</div>
       </div>
     );
   }
@@ -37,14 +41,14 @@ export function QuotaAmountCell({ mode, totalQuota = 0, remainingQuota = 0, cons
     <Tooltip
       title={
         <span>
-          已使用 {formatCny2(used)} / 未使用 {formatCny2(remaining)} / 总额度 {formatCny2(total)}
+          已使用 ¥{formatCny3(used)} / 未使用 ¥{formatCny3(remaining)} / 总额度 ¥{formatCny3(total)}
         </span>
       }
     >
-      <div style={{ minWidth: 120 }}>
+      <div className="quota-amount-cell quota-amount-cell--limited">
         <Progress percent={percent} size="small" showInfo={false} strokeColor="#1677ff" />
-        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-          剩余 {formatCny2(remaining)}
+        <Typography.Text type="secondary" className="quota-amount-hint">
+          剩余 ¥{formatCny3(remaining)}
         </Typography.Text>
       </div>
     </Tooltip>

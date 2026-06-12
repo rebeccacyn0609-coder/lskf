@@ -16,6 +16,7 @@ import {
   CloudServerOutlined,
   DashboardOutlined,
   HomeOutlined,
+  KeyOutlined,
   MonitorOutlined,
 } from '@ant-design/icons';
 import { Breadcrumb, ConfigProvider, Layout, Menu, Spin, Typography } from 'antd';
@@ -25,6 +26,7 @@ import { defineHashPageRoute, useHashPage } from '../../common/useHashPage';
 
 const ResourceDashboardPage = lazy(() => import('./pages/resource-dashboard'));
 const UsageStatsPage = lazy(() => import('./pages/usage-stats'));
+const ApiKeyManagementPage = lazy(() => import('./pages/api-key-management'));
 
 const { Content, Sider } = Layout;
 const { Text } = Typography;
@@ -35,6 +37,7 @@ const route = defineHashPageRoute(
     { id: 'resource-monitor', title: '资源监控' },
     { id: 'resource-dashboard', title: '模型资源看板' },
     { id: 'usage-stats', title: '模型用量统计' },
+    { id: 'api-key-management', title: '密钥管理' },
   ],
   { defaultPageId: 'resource-dashboard' },
 );
@@ -44,6 +47,7 @@ const menuLabels: Record<string, string> = {
   'resource-monitor': '资源监控',
   'resource-dashboard': '模型资源看板',
   'usage-stats': '模型用量统计',
+  'api-key-management': '密钥管理',
 };
 
 const menuItems: MenuProps['items'] = [
@@ -56,6 +60,7 @@ const menuItems: MenuProps['items'] = [
       { key: 'resource-monitor', icon: <MonitorOutlined />, label: '资源监控' },
       { key: 'resource-dashboard', icon: <DashboardOutlined />, label: '模型资源看板' },
       { key: 'usage-stats', icon: <BarChartOutlined />, label: '模型用量统计' },
+      { key: 'api-key-management', icon: <KeyOutlined />, label: '密钥管理' },
     ],
   },
 ];
@@ -84,6 +89,8 @@ function renderPage(pageId: string) {
       return <ResourceDashboardPage />;
     case 'usage-stats':
       return <UsageStatsPage />;
+    case 'api-key-management':
+      return <ApiKeyManagementPage />;
     case 'model-resources':
       return <PlaceholderPage title="AI大模型资源" />;
     case 'resource-monitor':
