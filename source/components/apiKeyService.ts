@@ -35,6 +35,7 @@ export interface ApiKeyListResult {
   balance: {
     current: number;
     unlimited: boolean;
+    totalSpent: number;
   };
   fetchedAt: Date;
 }
@@ -100,6 +101,7 @@ export function fetchApiKeys(query: ApiKeyQuery): Promise<ApiKeyListResult> {
             ? 0
             : Number((projectBalance.current - Math.random() * 0.3).toFixed(3)),
           unlimited: projectBalance.unlimited,
+          totalSpent: projectBalance.totalSpent,
         },
         fetchedAt: new Date(),
       });

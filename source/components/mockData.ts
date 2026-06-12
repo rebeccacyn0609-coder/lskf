@@ -141,7 +141,7 @@ export const projectBalance = {
 
 export function formatCny(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—';
-  return value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return value.toLocaleString('zh-CN', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 }
 
 export function formatTokens(value: number | null | undefined): string {
@@ -155,11 +155,8 @@ export function formatBalance(value: number | null, unlimited: boolean): string 
   return `¥${formatCny(value)}`;
 }
 
-/** 密钥管理页金额保留 3 位小数 */
-export function formatCny3(value: number | null | undefined): string {
-  if (value === null || value === undefined) return '—';
-  return value.toLocaleString('zh-CN', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
-}
+/** 与 formatCny 相同，开发平台金额统一保留 3 位小数 */
+export const formatCny3 = formatCny;
 
 export type QuotaMode = 'limited' | 'unlimited';
 

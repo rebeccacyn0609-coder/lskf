@@ -109,7 +109,13 @@ export default function UsageStatsPage() {
       render: (value: string) => value || '—',
     },
     { title: '资源项编码', dataIndex: 'resourceCode', width: 140 },
-    { title: '模型', dataIndex: 'model', width: 140 },
+    {
+      title: '模型',
+      dataIndex: 'model',
+      width: 140,
+      render: (value: string) =>
+        value && value !== '-' ? <Tag className="model-tag">{value}</Tag> : '—',
+    },
     {
       title: '耗时',
       dataIndex: 'durationMs',
@@ -129,7 +135,7 @@ export default function UsageStatsPage() {
       dataIndex: 'costCny',
       width: 120,
       align: 'right',
-      render: (value: number) => (value ? formatCny(value) : '—'),
+      render: (value: number) => (value ? `¥${formatCny(value)}` : '—'),
     },
     {
       title: '当前余额',
@@ -172,14 +178,14 @@ export default function UsageStatsPage() {
     <div className="dev-platform-page">
       <PageHeader
         title="模型用量统计"
-        description="默认每 5 秒自动拉取运营管理端已配置模型的调用日志；也可设置条件后手动查询。金额保留 2 位小数。"
+        description="默认每 5 秒自动拉取运营管理端已配置模型的调用日志；也可设置条件后手动查询。金额保留 3 位小数。"
       />
 
-      <section className="balance-overview" aria-label="余额消耗情况">
-        <div className="balance-overview-header">
-          <div className="balance-overview-title-block">
-            <h5 className="balance-overview-title">余额消耗情况</h5>
-            <p className="balance-overview-desc">与下方列表同步刷新，每 5 秒请求运营管理端接口</p>
+      <section className="balance-stat-row" aria-label="余额消耗情况">
+        <div className="balance-stat-row-head">
+          <div className="balance-stat-row-title-block">
+            <h5 className="balance-stat-row-title">余额消耗情况</h5>
+            <span className="balance-stat-row-desc">每 5 秒同步运营管理端数据</span>
           </div>
           <div className="balance-refresh-meta">
             <span className="balance-live-dot" aria-hidden />
@@ -188,65 +194,55 @@ export default function UsageStatsPage() {
           </div>
         </div>
 
-        <div className="balance-overview-grid">
-          <div className="balance-metric-card balance-metric-card--balance">
-            <div className="balance-metric-icon" aria-hidden>
-              <WalletOutlined />
-            </div>
-            <div className="balance-metric-body">
-              <div className="balance-metric-top">
-                <span className="balance-metric-label">当前余额</span>
+        <div className="balance-stat-row-grid">
+          <Tooltip title={balanceSnapshot.unlimited ? '项目额度为无限' : '运营管理端项目剩余额度'}>
+            <div className="balance-stat-pill balance-stat-pill--balance">
+              <div className="balance-stat-pill-head">
+                <WalletOutlined className="balance-stat-pill-icon" aria-hidden />
+                <span className="balance-stat-pill-label">当前余额</span>
                 {!balanceSnapshot.unlimited ? (
-                  <Tag className="balance-metric-tag" color="processing">有限额度</Tag>
+                  <Tag className="balance-stat-pill-tag" color="processing">
+                    有限
+                  </Tag>
                 ) : (
-                  <Tag className="balance-metric-tag" color="default">无限额度</Tag>
+                  <Tag className="balance-stat-pill-tag" color="default">
+                    无限
+                  </Tag>
                 )}
               </div>
-              <div className={`balance-metric-value${balanceSnapshot.unlimited ? ' is-unlimited' : ''}`}>
+              <div className={`balance-stat-pill-value${balanceSnapshot.unlimited ? ' is-unlimited' : ''}`}>
                 {balanceDisplay}
               </div>
-              <Tooltip title="对应运营管理端项目的剩余额度">
-                <span className="balance-metric-hint">
-                  {balanceSnapshot.unlimited ? '项目额度为无限时不展示具体数值' : '运营管理端项目剩余额度（CNY）'}
-                </span>
-              </Tooltip>
             </div>
-          </div>
+          </Tooltip>
 
-          <div className="balance-metric-card balance-metric-card--spent">
-            <div className="balance-metric-icon" aria-hidden>
-              <DollarOutlined />
-            </div>
-            <div className="balance-metric-body">
-              <div className="balance-metric-top">
-                <span className="balance-metric-label">消费总额</span>
-                <Tag className="balance-metric-tag" color="default">累计</Tag>
+          <Tooltip title="运营管理端对应项目的消费总额">
+            <div className="balance-stat-pill balance-stat-pill--spent">
+              <div className="balance-stat-pill-head">
+                <DollarOutlined className="balance-stat-pill-icon" aria-hidden />
+                <span className="balance-stat-pill-label">消费总额</span>
+                <Tag className="balance-stat-pill-tag" color="default">
+                  累计
+                </Tag>
               </div>
-              <div className="balance-metric-value">¥{formatCny(balanceSnapshot.totalSpent)}</div>
-              <Tooltip title="运营管理端对应项目的消费总额">
-                <span className="balance-metric-hint">运营管理端项目消费汇总（CNY，保留 2 位小数）</span>
-              </Tooltip>
+              <div className="balance-stat-pill-value">¥{formatCny(balanceSnapshot.totalSpent)}</div>
             </div>
-          </div>
+          </Tooltip>
         </div>
       </section>
 
-      <Card bordered={false} className="page-card usage-log-card">
+      <Card bordered={false} className="page-card usage-log-card platform-section-card">
         <div className="usage-log-card-head">
           <div className="usage-log-card-head-main">
             <FilterOutlined className="filter-card-head-icon" />
             <span className="filter-card-head-title">调用日志查询</span>
-            <span className="filter-card-head-hint">默认展示全部已配置模型；每 5 秒自动刷新</span>
-          </div>
-          <div className="balance-refresh-meta">
-            <span className="balance-live-dot" aria-hidden />
-            <SyncOutlined className="balance-refresh-icon" spin={polling} />
-            <span>列表同步 {refreshTimeText}</span>
+            <Tag className="platform-count-tag">{data.length} 条记录</Tag>
+            <span className="filter-card-head-hint">已配置模型 · 支持条件筛选与自动刷新</span>
           </div>
         </div>
 
-        <Form form={form} layout="vertical" className="filter-panel usage-log-filter">
-          <Row gutter={16} align="bottom">
+        <Form form={form} layout="vertical" className="filter-panel usage-log-filter platform-section-filter">
+          <Row gutter={[16, 0]} align="bottom">
             <Col xs={24} md={12} lg={8}>
               <Form.Item name="timeRange" label="时间段（不选则全部）">
                 <RangePicker showTime format="YYYY-MM-DD HH:mm:ss" style={{ width: '100%' }} />
@@ -291,12 +287,9 @@ export default function UsageStatsPage() {
           </Row>
         </Form>
 
-        <div className="table-summary">
-          共 <strong>{data.length}</strong> 条记录（已配置模型）
-        </div>
-
         <Table
           rowKey="id"
+          className="platform-data-table"
           columns={columns}
           dataSource={data}
           loading={loading}

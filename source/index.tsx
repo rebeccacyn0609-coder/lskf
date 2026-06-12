@@ -27,6 +27,7 @@ import { defineHashPageRoute, useHashPage } from '../../common/useHashPage';
 const ResourceDashboardPage = lazy(() => import('./pages/resource-dashboard'));
 const UsageStatsPage = lazy(() => import('./pages/usage-stats'));
 const ApiKeyManagementPage = lazy(() => import('./pages/api-key-management'));
+const KeyCallDashboardPage = lazy(() => import('./pages/key-call-dashboard'));
 
 const { Content, Sider } = Layout;
 const { Text } = Typography;
@@ -38,6 +39,7 @@ const route = defineHashPageRoute(
     { id: 'resource-dashboard', title: '模型资源看板' },
     { id: 'usage-stats', title: '模型用量统计' },
     { id: 'api-key-management', title: '密钥管理' },
+    { id: 'key-call-dashboard', title: '密钥调用数据看板' },
   ],
   { defaultPageId: 'resource-dashboard' },
 );
@@ -48,6 +50,7 @@ const menuLabels: Record<string, string> = {
   'resource-dashboard': '模型资源看板',
   'usage-stats': '模型用量统计',
   'api-key-management': '密钥管理',
+  'key-call-dashboard': '密钥调用数据看板',
 };
 
 const menuItems: MenuProps['items'] = [
@@ -61,6 +64,7 @@ const menuItems: MenuProps['items'] = [
       { key: 'resource-dashboard', icon: <DashboardOutlined />, label: '模型资源看板' },
       { key: 'usage-stats', icon: <BarChartOutlined />, label: '模型用量统计' },
       { key: 'api-key-management', icon: <KeyOutlined />, label: '密钥管理' },
+      { key: 'key-call-dashboard', icon: <DashboardOutlined />, label: '密钥调用数据看板' },
     ],
   },
 ];
@@ -91,6 +95,8 @@ function renderPage(pageId: string) {
       return <UsageStatsPage />;
     case 'api-key-management':
       return <ApiKeyManagementPage />;
+    case 'key-call-dashboard':
+      return <KeyCallDashboardPage />;
     case 'model-resources':
       return <PlaceholderPage title="AI大模型资源" />;
     case 'resource-monitor':

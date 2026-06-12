@@ -21,6 +21,7 @@ import {
 } from 'antd';
 import {
   CopyOutlined,
+  DollarOutlined,
   FilterOutlined,
   KeyOutlined,
   LineChartOutlined,
@@ -93,7 +94,7 @@ export default function ApiKeyManagementPage() {
   const [drawerForm] = Form.useForm();
   const [appliedQuery, setAppliedQuery] = useState<ApiKeyQuery>(DEFAULT_API_KEY_QUERY);
   const [keys, setKeys] = useState<ApiKeyRow[]>([]);
-  const [balance, setBalance] = useState({ current: 0, unlimited: false });
+  const [balance, setBalance] = useState({ current: 0, unlimited: false, totalSpent: 0 });
   const [loading, setLoading] = useState(false);
   const [polling, setPolling] = useState(false);
   const [refreshAt, setRefreshAt] = useState<Date | null>(null);
@@ -267,9 +268,22 @@ export default function ApiKeyManagementPage() {
       {
         title: '允许模型',
         dataIndex: 'allowedModels',
-        width: 160,
-        ellipsis: true,
-        render: (models: string[]) => (models.length ? models.join(', ') : '全部'),
+        width: 180,
+        render: (models: string[]) => {
+          if (!models.length) return <Tag className="model-tag">全部</Tag>;
+          const visible = models.slice(0, 2);
+          const rest = models.length - visible.length;
+          return (
+            <Space size={4} wrap className="model-tag-group">
+              {visible.map((model) => (
+                <Tag key={model} className="model-tag">
+                  {model}
+                </Tag>
+              ))}
+              {rest > 0 ? <Tag className="model-tag model-tag--more">+{rest}</Tag> : null}
+            </Space>
+          );
+        },
       },
       {
         title: 'IP 限制',
@@ -367,28 +381,11 @@ export default function ApiKeyManagementPage() {
         description="默认每 5 秒自动拉取运营管理端密钥与余额数据；密钥启用/禁用由开发平台本地控制。金额保留 3 位小数。"
       />
 
-      <section className="balance-compact" aria-label="系统充值余额">
-        <div className="balance-compact-inner">
-          <div className="balance-compact-main">
-            <WalletOutlined className="balance-compact-icon" aria-hidden />
-            <span className="balance-compact-label">系统充值余额</span>
-            {!balance.unlimited ? (
-              <Tag className="balance-compact-tag" color="processing">
-                有限额度
-              </Tag>
-            ) : (
-              <Tag className="balance-compact-tag" color="default">
-                无限额度
-              </Tag>
-            )}
-            <span className={`balance-compact-value${balance.unlimited ? ' is-unlimited' : ''}`}>
-              {balanceDisplay}
-            </span>
-            <Tooltip title="运营管理端项目额度；有限时展示余额，无限时展示「无限」">
-              <span className="balance-compact-hint">
-                {balance.unlimited ? '项目额度为无限' : '运营管理端项目剩余额度'}
-              </span>
-            </Tooltip>
+      <section className="balance-stat-row" aria-label="余额消耗情况">
+        <div className="balance-stat-row-head">
+          <div className="balance-stat-row-title-block">
+            <h5 className="balance-stat-row-title">余额消耗情况</h5>
+            <span className="balance-stat-row-desc">每 5 秒同步运营管理端数据</span>
           </div>
           <div className="balance-refresh-meta">
             <span className="balance-live-dot" aria-hidden />
@@ -396,30 +393,62 @@ export default function ApiKeyManagementPage() {
             <span>最近更新 {refreshTimeText}</span>
           </div>
         </div>
+
+        <div className="balance-stat-row-grid">
+          <Tooltip title={balance.unlimited ? '项目额度为无限' : '运营管理端项目剩余额度'}>
+            <div className="balance-stat-pill balance-stat-pill--balance">
+              <div className="balance-stat-pill-head">
+                <WalletOutlined className="balance-stat-pill-icon" aria-hidden />
+                <span className="balance-stat-pill-label">系统充值余额</span>
+                {!balance.unlimited ? (
+                  <Tag className="balance-stat-pill-tag" color="processing">
+                    有限
+                  </Tag>
+                ) : (
+                  <Tag className="balance-stat-pill-tag" color="default">
+                    无限
+                  </Tag>
+                )}
+              </div>
+              <div className={`balance-stat-pill-value${balance.unlimited ? ' is-unlimited' : ''}`}>
+                {balanceDisplay}
+              </div>
+            </div>
+          </Tooltip>
+
+          <Tooltip title="运营管理端对应项目的消费总额">
+            <div className="balance-stat-pill balance-stat-pill--spent">
+              <div className="balance-stat-pill-head">
+                <DollarOutlined className="balance-stat-pill-icon" aria-hidden />
+                <span className="balance-stat-pill-label">消费总额</span>
+                <Tag className="balance-stat-pill-tag" color="default">
+                  累计
+                </Tag>
+              </div>
+              <div className="balance-stat-pill-value">¥{formatCny3(balance.totalSpent)}</div>
+            </div>
+          </Tooltip>
+        </div>
       </section>
 
-      <Card bordered={false} className="page-card usage-log-card">
+      <Card bordered={false} className="page-card usage-log-card platform-section-card">
         <div className="usage-log-card-head">
           <div className="usage-log-card-head-main">
             <KeyOutlined className="filter-card-head-icon" />
             <span className="filter-card-head-title">密钥列表</span>
-            <span className="filter-card-head-hint">默认每 5 秒自动刷新；状态筛选为开发平台侧启用/禁用</span>
-          </div>
-          <div className="balance-refresh-meta">
-            <span className="balance-live-dot" aria-hidden />
-            <SyncOutlined className="balance-refresh-icon" spin={polling} />
-            <span>列表同步 {refreshTimeText}</span>
+            <Tag className="platform-count-tag">{keys.length} 个密钥</Tag>
+            <span className="filter-card-head-hint">运营管理端已启用 · 状态为开发平台侧筛选</span>
           </div>
         </div>
 
-        <Form form={form} layout="vertical" className="filter-panel usage-log-filter">
-          <Row gutter={16} align="bottom">
-            <Col xs={24} sm={12} lg={6}>
+        <Form form={form} layout="vertical" className="filter-panel usage-log-filter platform-section-filter">
+          <Row gutter={[16, 0]} align="bottom">
+            <Col xs={24} sm={12} md={8} lg={6}>
               <Form.Item name="name" label="密钥名称">
                 <Input placeholder="模糊搜索" allowClear />
               </Form.Item>
             </Col>
-            <Col xs={24} sm={12} lg={6}>
+            <Col xs={24} sm={12} md={8} lg={5}>
               <Form.Item name="platformStatus" label="密钥状态" initialValue="all">
                 <Select
                   placeholder="全部"
@@ -431,7 +460,7 @@ export default function ApiKeyManagementPage() {
                 />
               </Form.Item>
             </Col>
-            <Col xs={24} lg={6} className="filter-actions">
+            <Col xs={24} md={8} lg={6} className="filter-actions">
               <Button type="primary" icon={<SearchOutlined />} loading={loading} onClick={handleSearch}>
                 查询
               </Button>
@@ -442,12 +471,9 @@ export default function ApiKeyManagementPage() {
           </Row>
         </Form>
 
-        <div className="table-summary">
-          共 <strong>{keys.length}</strong> 个密钥（运营管理端已启用）
-        </div>
-
         <Table
           rowKey="id"
+          className="platform-data-table"
           columns={keyColumns}
           dataSource={keys}
           loading={loading}

@@ -92,9 +92,9 @@ export function summarizeUsageLogs(rows: UsageLogRow[]): UsageStatsSummary {
   });
 
   return {
-    consumeTotal: Number(consumeTotal.toFixed(2)),
-    rechargeTotal: Number(rechargeTotal.toFixed(2)),
-    deductTotal: Number(deductTotal.toFixed(2)),
+    consumeTotal: Number(consumeTotal.toFixed(3)),
+    rechargeTotal: Number(rechargeTotal.toFixed(3)),
+    deductTotal: Number(deductTotal.toFixed(3)),
   };
 }
 
@@ -108,7 +108,7 @@ export function fetchUsageStats(query: UsageStatsQuery): Promise<UsageStatsResul
         rows,
         summary,
         balance: {
-          current: Number((projectBalance.current - Math.random() * 0.3).toFixed(2)),
+          current: Number((projectBalance.current - Math.random() * 0.3).toFixed(3)),
           unlimited: projectBalance.unlimited,
           totalSpent: projectBalance.totalSpent,
         },

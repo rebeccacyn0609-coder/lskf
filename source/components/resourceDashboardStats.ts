@@ -2,7 +2,6 @@ import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 
 import {
-  mockResourceGroups,
   mockResourceItems,
   type ResourceType,
 } from './mockData';
@@ -16,8 +15,6 @@ export interface ResourceDashboardQuery {
 export interface ResourceDashboardStats {
   totalTokens: number | null;
   totalCost: number | null;
-  balance: number | null;
-  balanceUnlimited: boolean;
   totalCalls: number | null;
 }
 
@@ -75,7 +72,7 @@ function buildDailyRecords(): DailyUsageRecord[] {
         itemId: item.id,
         model: item.model,
         tokens: Math.round(profile.tokenBase * factor * profile.wave),
-        costCny: Number((profile.costBase * factor * profile.wave).toFixed(2)),
+        costCny: Number((profile.costBase * factor * profile.wave).toFixed(3)),
         calls: Math.round(profile.callBase * factor),
       });
     }
@@ -106,30 +103,18 @@ function filterRecords(query: ResourceDashboardQuery): DailyUsageRecord[] {
   });
 }
 
-function resolveBalance(query: ResourceDashboardQuery): Pick<ResourceDashboardStats, 'balance' | 'balanceUnlimited'> {
-  if (query.resourceType === 'group') {
-    const group = mockResourceGroups.find((item) => item.id === query.resourceId);
-    if (!group) return { balance: null, balanceUnlimited: false };
-    return { balance: group.balance, balanceUnlimited: group.balance === null };
-  }
-  return { balance: null, balanceUnlimited: true };
-}
-
 function formatChartDate(at: Dayjs): string {
   return at.format('MM-DD');
 }
 
 export function computeResourceDashboard(query: ResourceDashboardQuery): ResourceDashboardResult {
   const records = filterRecords(query);
-  const balanceInfo = resolveBalance(query);
 
   if (!query.resourceId) {
     return {
       stats: {
         totalTokens: null,
         totalCost: null,
-        balance: null,
-        balanceUnlimited: false,
         totalCalls: null,
       },
       tokenTrend: [],
@@ -143,8 +128,6 @@ export function computeResourceDashboard(query: ResourceDashboardQuery): Resourc
       stats: {
         totalTokens: 0,
         totalCost: 0,
-        balance: balanceInfo.balance,
-        balanceUnlimited: balanceInfo.balanceUnlimited,
         totalCalls: 0,
       },
       tokenTrend: [],
@@ -154,7 +137,7 @@ export function computeResourceDashboard(query: ResourceDashboardQuery): Resourc
   }
 
   const totalTokens = records.reduce((sum, row) => sum + row.tokens, 0);
-  const totalCost = Number(records.reduce((sum, row) => sum + row.costCny, 0).toFixed(2));
+  const totalCost = Number(records.reduce((sum, row) => sum + row.costCny, 0).toFixed(3));
   const totalCalls = records.reduce((sum, row) => sum + row.calls, 0);
 
   const dayMap = new Map<string, { at: Dayjs; tokens: number; costCny: number; models: Record<string, number> }>();
@@ -168,7 +151,7 @@ export function computeResourceDashboard(query: ResourceDashboardQuery): Resourc
       models: {},
     };
     bucket.tokens += record.tokens;
-    bucket.costCny = Number((bucket.costCny + record.costCny).toFixed(2));
+    bucket.costCny = Number((bucket.costCny + record.costCny).toFixed(3));
     bucket.models[record.model] = (bucket.models[record.model] ?? 0) + record.calls;
     dayMap.set(key, bucket);
   });
@@ -194,8 +177,6 @@ export function computeResourceDashboard(query: ResourceDashboardQuery): Resourc
     stats: {
       totalTokens,
       totalCost,
-      balance: balanceInfo.balance,
-      balanceUnlimited: balanceInfo.balanceUnlimited,
       totalCalls,
     },
     tokenTrend,

@@ -7,7 +7,6 @@ import {
   DatePicker,
   Empty,
   Form,
-  Segmented,
   Select,
   Skeleton,
   Space,
@@ -18,10 +17,8 @@ import {
 } from 'antd';
 import {
   ApiOutlined,
-  AppstoreOutlined,
   ClockCircleOutlined,
   DollarOutlined,
-  FilterOutlined,
   InfoCircleOutlined,
   ReloadOutlined,
   SearchOutlined,
@@ -36,6 +33,10 @@ import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/compon
 import { CanvasRenderer } from 'echarts/renderers';
 
 import { PageHeader } from '../components/PageHeader';
+import {
+  getProjectRechargeBalance,
+  type ProjectRechargeBalance,
+} from '../components/keyCallDashboardStats';
 import {
   computeResourceDashboard,
   type ResourceDashboardQuery,
@@ -110,24 +111,13 @@ function buildStatItems(stats: ResourceDashboardStats): StatItem[] {
     {
       key: 'cost',
       label: '总 Token 消费金额',
-      tip: '运营管理端模型客户单价 × Token 数量，CNY 保留 2 位小数。',
+      tip: '运营管理端模型客户单价 × Token 数量，CNY 保留 3 位小数。',
       value: stats.totalCost === null ? '—' : formatCny(stats.totalCost),
       prefix: stats.totalCost === null ? undefined : '¥',
       empty: stats.totalCost === null,
       color: '#13c2c2',
       bg: 'rgba(19, 194, 194, 0.1)',
       icon: <DollarOutlined />,
-    },
-    {
-      key: 'balance',
-      label: '余额',
-      tip: '资源组展示运营管理端项目额度；无限额度或资源项场景展示为空。',
-      value: stats.balanceUnlimited || stats.balance === null ? '—' : formatCny(stats.balance),
-      prefix: stats.balanceUnlimited || stats.balance === null ? undefined : '¥',
-      empty: stats.balanceUnlimited || stats.balance === null,
-      color: '#722ed1',
-      bg: 'rgba(114, 46, 209, 0.1)',
-      icon: <WalletOutlined />,
     },
     {
       key: 'calls',
@@ -146,8 +136,8 @@ function buildStatItems(stats: ResourceDashboardStats): StatItem[] {
 function StatGrid({ items, loading }: { items: StatItem[]; loading: boolean }) {
   if (loading) {
     return (
-      <div className="dashboard-stat-grid">
-        {Array.from({ length: 4 }).map((_, index) => (
+      <div className="dashboard-stat-grid dashboard-stat-grid--3">
+        {Array.from({ length: 3 }).map((_, index) => (
           <Card bordered={false} className="dashboard-stat-card" key={index}>
             <Skeleton active paragraph={{ rows: 2 }} />
           </Card>
@@ -157,7 +147,7 @@ function StatGrid({ items, loading }: { items: StatItem[]; loading: boolean }) {
   }
 
   return (
-    <div className="dashboard-stat-grid">
+    <div className="dashboard-stat-grid dashboard-stat-grid--3">
       {items.map((item) => (
         <Card bordered={false} className="dashboard-stat-card" key={item.key}>
           <div className="dashboard-stat-inner">
@@ -209,6 +199,9 @@ export default function ResourceDashboardPage() {
   const [chartLoading, setChartLoading] = useState(false);
   const [dateRangeKey, setDateRangeKey] = useState(0);
   const [activeDatePreset, setActiveDatePreset] = useState<number | null>(null);
+  const [rechargeBalance, setRechargeBalance] = useState<ProjectRechargeBalance>(() =>
+    getProjectRechargeBalance(),
+  );
 
   const tokenChartRef = useRef<HTMLDivElement>(null);
   const callChartRef = useRef<HTMLDivElement>(null);
@@ -261,6 +254,7 @@ export default function ResourceDashboardPage() {
         queriedAt: new Date(),
       });
       setDashboardResult(result);
+      setRechargeBalance(getProjectRechargeBalance());
       setModelFilter('all');
       setLoading(false);
       window.setTimeout(() => setChartLoading(false), 280);
@@ -388,7 +382,7 @@ export default function ResourceDashboardPage() {
           smooth: true,
           showSymbol: false,
           yAxisIndex: 1,
-          data: tokenTrend.map((point) => Number(point.costCny.toFixed(2))),
+          data: tokenTrend.map((point) => Number(point.costCny.toFixed(3))),
         },
       ],
     }, true);
@@ -474,136 +468,154 @@ export default function ResourceDashboardPage() {
     })
     : '';
 
+  const rechargeBalanceDisplay = rechargeBalance.unlimited
+    ? '无限'
+    : `¥${formatCny(rechargeBalance.current)}`;
+
   return (
     <div className="dev-platform-page">
       <PageHeader
         title="模型资源看板"
-        description="指标卡片与趋势图均随查询条件联动刷新；未选择统计时间段时默认展示全部时间。金额保留 2 位小数，Token 为整数。"
+        description="指标卡片与趋势图均随查询条件联动刷新；未选择统计时间段时默认展示全部时间。金额保留 3 位小数，Token 为整数。"
       />
 
-      <Card bordered={false} className="page-card dashboard-filter-card">
-        <div className="filter-card-head">
-          <div className="filter-card-head-main">
-            <FilterOutlined className="filter-card-head-icon" />
-            <span className="filter-card-head-title">查询条件</span>
-            <span className="filter-card-head-hint">设置资源与时间范围后点击查询</span>
-          </div>
+      <Card
+        bordered={false}
+        className="page-card dashboard-filter-card dashboard-filter-card--with-balance dashboard-filter-card--compact"
+      >
+        <div className="dashboard-top-balance" aria-label="系统充值余额">
+          <Tooltip title={rechargeBalance.unlimited ? '项目额度为无限' : '运营管理端项目剩余额度'}>
+            <div className="dashboard-top-balance-main">
+              <WalletOutlined className="dashboard-top-balance-icon" aria-hidden />
+              <span className="dashboard-top-balance-label">系统充值余额</span>
+              {!rechargeBalance.unlimited ? (
+                <Tag className="balance-stat-pill-tag" color="processing">
+                  有限
+                </Tag>
+              ) : (
+                <Tag className="balance-stat-pill-tag" color="default">
+                  无限
+                </Tag>
+              )}
+              <span
+                className={`dashboard-top-balance-value${rechargeBalance.unlimited ? ' is-unlimited' : ''}`}
+              >
+                {rechargeBalanceDisplay}
+              </span>
+            </div>
+          </Tooltip>
+          {queriedAtText ? (
+            <span className="dashboard-top-balance-time">更新于 {queriedAtText}</span>
+          ) : null}
         </div>
 
-        <div className="filter-form-surface">
+        <div className="dashboard-filter-compact">
           <Form
             form={form}
             layout="vertical"
-            className="dashboard-filter-form"
+            className="dashboard-filter-form dashboard-filter-form--compact"
             onFinish={handleSearch}
             initialValues={{ resourceType: 'group', resourceId: defaultResourceId }}
           >
-            <div className="filter-group">
-              <div className="filter-group-title">
-                <AppstoreOutlined />
-                <span>资源维度</span>
-              </div>
-              <div className="filter-group-body filter-group-body--resource">
-                <Form.Item name="resourceType" label="资源类型" className="filter-field filter-field--type">
-                  <Segmented
-                    block
-                    options={[
-                      { value: 'group', label: '资源组' },
-                      { value: 'item', label: '资源项' },
-                    ]}
-                    onChange={(value) => handleResourceTypeChange(value as ResourceType)}
-                  />
-                </Form.Item>
-                <Form.Item
-                  name="resourceId"
-                  label="资源名称"
-                  className="filter-field filter-field--name"
-                  rules={[{ required: true, message: '请选择资源' }]}
-                >
-                  <Select
-                    placeholder="请选择资源组或资源项"
-                    showSearch
-                    optionFilterProp="label"
-                    options={resourceOptions}
-                    optionRender={(option) => (
-                      <div className="resource-option">
-                        <span>{option.label}</span>
-                        {option.data?.desc ? (
-                          <span className="resource-option-code">{option.data.desc}</span>
-                        ) : null}
-                      </div>
-                    )}
-                  />
-                </Form.Item>
-              </div>
-            </div>
+            <div className="dashboard-filter-compact-row dashboard-filter-compact-row--resource">
+              <Form.Item
+                name="resourceType"
+                label="资源类型"
+                className="dashboard-filter-field"
+              >
+                <Select
+                  options={[
+                    { value: 'group', label: '资源组' },
+                    { value: 'item', label: '资源项' },
+                  ]}
+                  onChange={(value) => handleResourceTypeChange(value as ResourceType)}
+                />
+              </Form.Item>
 
-            <div className="filter-group-divider" />
+              <Form.Item
+                name="resourceId"
+                label="资源名称"
+                className="dashboard-filter-field"
+                rules={[{ required: true, message: '请选择资源' }]}
+              >
+                <Select
+                  placeholder="请选择"
+                  showSearch
+                  optionFilterProp="label"
+                  options={resourceOptions}
+                  optionRender={(option) => (
+                    <div className="resource-option">
+                      <span>{option.label}</span>
+                      {option.data?.desc ? (
+                        <span className="resource-option-code">{option.data.desc}</span>
+                      ) : null}
+                    </div>
+                  )}
+                />
+              </Form.Item>
 
-            <div className="filter-group">
-              <div className="filter-group-title">
-                <ClockCircleOutlined />
-                <span>统计时间</span>
-              </div>
-              <div className="filter-group-body filter-group-body--time">
-                <Form.Item
-                  name="dateRange"
-                  label="时间段（精确到时分，不选则统计全部）"
-                  className="filter-field filter-field--range"
-                >
-                  <RangePicker
-                    key={dateRangeKey}
-                    showTime
-                    format="YYYY-MM-DD HH:mm"
-                    style={{ width: '100%' }}
-                    placeholder={['开始时间', '结束时间']}
-                    onChange={(value) => handleDateRangeChange(value as [Dayjs, Dayjs] | null)}
-                  />
-                </Form.Item>
-                <div className="filter-field filter-field--presets">
-                  <span className="date-presets-label">快捷选择</span>
-                  <div className="date-preset-group">
-                    {[
-                      { days: 0, label: '今天' },
-                      { days: 7, label: '近 7 天' },
-                      { days: 30, label: '近 30 天' },
-                    ].map((preset) => (
-                      <button
-                        key={preset.days}
-                        type="button"
-                        className={`date-preset-btn${activeDatePreset === preset.days ? ' is-active' : ''}`}
-                        onClick={() => applyDatePreset(preset.days)}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
+              <Form.Item
+                name="dateRange"
+                label="时间段"
+                className="dashboard-filter-field dashboard-filter-field--range"
+                tooltip="精确到时分，不选则统计全部"
+              >
+                <RangePicker
+                  key={dateRangeKey}
+                  showTime
+                  format="YYYY-MM-DD HH:mm"
+                  style={{ width: '100%' }}
+                  placeholder={['开始', '结束']}
+                  onChange={(value) => handleDateRangeChange(value as [Dayjs, Dayjs] | null)}
+                />
+              </Form.Item>
+
+              <div className="dashboard-filter-presets">
+                <span className="date-presets-label">快捷</span>
+                <div className="date-preset-group">
+                  {[
+                    { days: 0, label: '今天' },
+                    { days: 7, label: '近 7 天' },
+                    { days: 30, label: '近 30 天' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.days}
+                      type="button"
+                      className={`date-preset-btn${activeDatePreset === preset.days ? ' is-active' : ''}`}
+                      onClick={() => applyDatePreset(preset.days)}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
                 </div>
+              </div>
+
+              <div className="dashboard-filter-actions">
+                <Button icon={<ReloadOutlined />} onClick={handleReset}>
+                  重置
+                </Button>
+                <Button type="primary" icon={<SearchOutlined />} loading={loading} onClick={handleSearch}>
+                  查询
+                </Button>
               </div>
             </div>
           </Form>
-        </div>
 
-        <div className="filter-card-footer">
-          <div className="filter-applied-scope">
+          <div className="dashboard-filter-applied">
             <span className="filter-applied-label">已应用</span>
-            <Space size={[6, 6]} wrap className="filter-applied-tags">
-              <Tag color="processing" bordered={false}>{scopeLabel.typeLabel}</Tag>
-              <Tag bordered={false}>{scopeLabel.name}</Tag>
-              {scopeLabel.code ? <Tag bordered={false} className="filter-code-tag">{scopeLabel.code}</Tag> : null}
-              <Tag bordered={false} icon={<ClockCircleOutlined />}>{scopeLabel.range}</Tag>
+            <Space size={[4, 4]} wrap className="filter-applied-tags">
+              <Tag color="processing" bordered={false}>
+                {scopeLabel.typeLabel} · {scopeLabel.name}
+              </Tag>
+              {scopeLabel.code ? (
+                <Tag bordered={false} className="filter-code-tag">
+                  {scopeLabel.code}
+                </Tag>
+              ) : null}
+              <Tag bordered={false} icon={<ClockCircleOutlined />}>
+                {scopeLabel.range}
+              </Tag>
             </Space>
-            {queriedAtText ? (
-              <span className="filter-applied-time">更新于 {queriedAtText}</span>
-            ) : null}
-          </div>
-          <div className="filter-card-actions">
-            <Button icon={<ReloadOutlined />} onClick={handleReset}>
-              重置
-            </Button>
-            <Button type="primary" icon={<SearchOutlined />} loading={loading} onClick={handleSearch}>
-              查询
-            </Button>
           </div>
         </div>
       </Card>
